@@ -1,0 +1,10 @@
+mashad
+    - upload
+    - multiple req/res
+    - handle keep-alive connections
+    -
+oussama
+    - cgi get/post
+    - chunked req/res
+    - check fds
+    - dont write/read at the same time

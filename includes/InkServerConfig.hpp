@@ -3,208 +3,135 @@
 /*                                                        :::      ::::::::   */
 /*   InkServerConfig.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By:  <mashad@student.1337.ma>                  +#+  +:+       +#+        */
+/*   By: oel-ouar <oel-ouar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/09/26 10:03:55 by                   #+#    #+#             */
-/*   Updated: 2021/10/01 10:33:31 by                  ###   ########.fr       */
+/*   Created: 2022/01/10 18:58:38 by f0rkr             #+#    #+#             */
+/*   Updated: 2022/02/28 19:29:58 by oel-ouar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#ifndef SERVERCONFIG_HPP
+# define SERVERCONFIG_HPP
 
-#ifndef INKSERVERCONFIG_HPP
-# define INKSERVERCONFIG_HPP
 
-# include <iostream>
-# include <string>
-# include <sstream>
-# include <string>
 # include "webserv.hpp"
+# include "InkLocation.hpp"
 
-
-class INKLOCATION {
-	private:
-		std::string		_location;	   // Location path
-		std::string		_method; 	  // Allowed method to use in this location
-		std::string		_root;		 // Root file paths
-		bool 			_autoIndex;	// Enable or Disable Directory listing
+/** @brief ft namespace
+ * define all oop classes and functions
+ * inside ft namespaces for better use and
+ * accessibility
+ */
+namespace ft {
+	/** @brief Server config class
+	 * After parsing file all values for each server are
+	 * stored in this class.
+	 *
+	 * @param none
+	 * @return none
+	 */
+	class ServerConfig {
 	public:
-		INKLOCATION( void ){
-			this->_location = "";
-			this->_method = "";
-			this->_root = "";
-			this->_autoIndex = false;
-			return ;
-		}
-		~INKLOCATION( void )
-		{
-			return ;
-		}
-		std::string 	getLocation( void ) const {
-			return (this->_location);
-		}
-		std::string 	getMethod( void ) const {
-			return (this->_method);
-		}
-		std::string 	getRoot( void ) const {
-			return (this->_root);
-		}
-		bool 			getAutoIndex( void ) const {
-			return (this->_autoIndex);
-		}
-		void 	setLocation(std::string const &location) {
-			this->_location = location;
-			return ;
-		}
-		void 	setMethod(std::string const &method) {
-			this->_method = method;
-			return ;
-		}
-		void 	setRoot(std::string const &root) {
-			this->_root = root;
-			return ;
-		}
-		void 	setAutoIndex(bool autoindex) {
-			this->_autoIndex = autoindex;
-			return ;
-		}
-		bool 		ParseInkLocation(std::string rawData) {
-			std::stringstream	data(rawData);
-			std::string			line;
+		typedef size_t								size_type;
+		typedef	std::string							string;
+		typedef	std::vector<Location>				vector;
+		typedef	std::allocator<vector>	allocator_type;
+	private:
+		string		_servername;		// Server name
+		string		_host;				// Host ip address to bind
+		string		_defaultErrorPages;	// Path to default error pages
+		size_type	_port;				// Port number to bind
+		size_type	_bodySizeLimit;		// Request body size limit
+		size_type	_locationsCount;	// Location size
+		vector		_locations;			// Vector of location classes
+		string 		_dirPath;			// Directory path
 
-			if (rawData.find('{') == std::string::npos || rawData.find("};") == std::string::npos)
-				return (false);
-//			rawData.erase(std::remove_if(rawData.begin(), rawData.end(), isspace), rawData.end());
-			data.clear();
-			rawData.replace(rawData.find('}'), 2, ",");
-			rawData = rawData.substr(2, rawData.length());
-			data.str(rawData);
-			while (std::getline(data, line, ',')){
-				switch (line[0])
-				{
-					case 'p':
-					{
-						if (line.find("path=") == std::string::npos)
-							return (false);
-						this->setLocation(line.substr(line.find('=') + 1, line.length()));
-						break ;
-					}
-					case 'm': {
-						if (line.find("method=") == std::string::npos) {
-							return (false);
-						}
-						this->setMethod(line.substr(line.find('=') + 1, line.length()));
-						break ;
-					}
-					case 'r': {
-						if (line.find("root=") == std::string::npos) {
-							return (false);
-						}
-						this->setRoot(line.substr(line.find('=') + 1, line.length()));
-						break ;
-					}
-					case 'a': {
-						if (line.find("autoindex=") == std::string::npos){
-							return (false);
-						}
-						this->_autoIndex = (line.substr(line.find("=") + 1, line.length()) == "on");
-						break ;
-					}
-					default : return (false);
-				}
+		// Allocator for vector
+		allocator_type	_alloc;
+	public:
+		/** @brief Default constructor
+		 * Construct new Server config class
+		 * with default value configuration
+		 *
+		 * @param none
+		 * @return none
+		 */
+		ServerConfig( void ): _servername(""), _host(""), _defaultErrorPages("/var/www/pages"), _port(0), _bodySizeLimit(0), _locationsCount(0), _locations(0), _alloc(allocator_type()) {
+			char tmp[1024];
+
+			getcwd(tmp, 1024);
+			if (tmp == nullptr) {
+				throw ServerConfig::GetFolderPathError();
 			}
-			return (true);
+			_dirPath = string(tmp);
+			return ;
 		}
-		bool 		checkLocationDefaultValues() const {
-//			std::cout << "location: " << this->_location << " method: " << this->_method << " root: " << this->_root << " autoindex: " << this->_autoIndex << std::endl;
-			if (this->_location.empty() || this->_method.empty() || this->_root.empty())
-					return (false);
-			return (true);
-		}
-};
 
-class INKSERVERCONFIG {
-	private:
-		std::string 	_serverName; // Server name
-		std::string		_host; // IP address to bind on
-		size_t			_port; // Port number to listen in
-		size_t			_bodySizeLimit; // Request body size limit
-		size_t 			_locationsCount; // Location counter
-		std::string		_defaultErrorPage; // Path to default error pages
-		INKLOCATION		*_inkLocations; // Location class
+		/** @brief Default destructor
+		 * destroy all memory allocations and clear all
+		 * private attributes before destroying the class
+		 *
+		 * @param none
+		 * @return none
+		 */
+		~ServerConfig() {};
 
+		/** @brief Private attributes getters
+		 * Return the called attribute value
+		 *
+		 * @param none
+		 * @return string, size_type, vector
+		 */
+		string		getServerName( void ) const { return (_servername); }
+		string		getHost( void ) const { return (_host); }
+		string		getDefaultErrorPagePath( void ) const { return (_defaultErrorPages); }
+		size_type	getPort( void ) const { return (_port); }
+		size_type	getBodySizeLimit( void ) const { return (_bodySizeLimit); }
+		size_type	getLocationsCount( void ) const { return (_locations.size()); }
+		vector		getLocations() const { return (_locations); }
+		string 		getFullPath() const { return (_dirPath); }
 
-	public:
-		INKSERVERCONFIG( void ){
-			this->_serverName = "";
-			this->_host = "";
-			this->_port = 0;
-			this->_bodySizeLimit = 0;
-			this->_defaultErrorPage = "pages/";
-			this->_locationsCount = 0;
-			this->_inkLocations = NULL;
-			return ;
-		}
-		INKSERVERCONFIG( INKSERVERCONFIG const &COPY ) : _port(COPY.getPort()), _bodySizeLimit(COPY.getBodySizeLimit()){
-			*this = COPY;
-			return ;
-		}
-		~INKSERVERCONFIG( void ) {
-			return ;
-		}
-		std::string		getServerName( void ) const{ // Server Name getter
-			return (this->_serverName);
-		}
-		std::string 	getHost( void ) const { // IP address getter
-			return (this->_host);
-		}
-		std::string 	getDefaultErrorPage( void ) const { // Get default Error page
-			return (this->_defaultErrorPage);
-		}
-		size_t 			getPort( void ) const { // Get port number
-			return (this->_port);
-		}
-		size_t 			getBodySizeLimit( void ) const {  // Get request body size limit
-			return (this->_bodySizeLimit);
-		}
-		size_t 			getLocationsCount( void ) const { // Get Locations Counter
-			return (this->_locationsCount);
-		}
-		INKLOCATION		*getInkLocation( void ) const { // Get Array of location object
-			return (this->_inkLocations);
-		}
-		void 			setServerName( std::string const &serverName ) {
-			this->_serverName = serverName;
-			return ;
-		}
-		void 			setHost( std::string const &host ) {
-			this->_host = host;
-			return ;
-		}
-		void 			setPort( size_t port ) {
-			this->_port = port;
-			return ;
-		}
-		void 			setDefaultErrorPage( std::string const &defaultErrorPage ) {
-			this->_defaultErrorPage = defaultErrorPage;
-			return ;
-		}
-		void 			setBodySizeLimit( size_t bodySizeLimit ) {
-			this->_bodySizeLimit = bodySizeLimit;
-			return ;
-		}
-		void 			setLocationsCount( size_t locationsCount ) {
-			this->_locationsCount = locationsCount;
-		}
-		void 			setInkLocations(size_t locationCount){
-			this->_locationsCount = locationCount;
-			this->_inkLocations = new INKLOCATION[locationCount];
-			return ;
-		}
-		bool 			checkDefaultValues() const {
-//			std::cout << "host: " << this->_host << " port: " << this->_port << " bodysizeLimit: " << this->_bodySizeLimit << " locations: " << this->_locationsCount << std::endl;
-			if (this->_host.empty() || this->_port == 0 || this->_bodySizeLimit == 0 || this->_locationsCount == 0)
+		/** @brief Private attributes setters
+		 * Set private attributes values from parameter
+		 *
+		 * @param string, size_type
+		 * @return none
+		 */
+		void		setServerName( string const &servername ) { _servername = servername;}
+		void		setHost( string const &host ) { _host = host;}
+		void		setDefaultErrorPagePath( string const &errorPath ) { _defaultErrorPages = errorPath;}
+		void		setPort( size_type	port ) { _port = port;}
+		void		setBodySizeLimit( size_type sizeLimit ) { _bodySizeLimit = sizeLimit;}
+		void		setLocationsCount( size_type locationscount ) { _locationsCount = locationscount;}
+		void		setLocations( size_type locationsCount ) { _locationsCount = locationsCount; _locations.resize(locationsCount); }
+		void 		parseLocations(size_type position, const std::string& RawData) {_locations.at(position).parseLocation(RawData);}
+		/** @brief Check default values
+		 * Check if all values are set properly
+		 * if not return false
+		 *
+		 * @param none
+		 * @return bool
+		 */
+		bool	checkDefaultValues( void ) const {
+			// TO-DO: Check if all variables are set if not return false, else return true
+			if (_host.empty() || _port == 0 || _bodySizeLimit == 0 | _locationsCount == 0)
 				return (false);
 			return (true);
 		}
-};
+
+		class GetFolderPathError : public std::exception {
+		public:
+			GetFolderPathError( void ) throw() {
+				return ;
+			}
+			virtual ~GetFolderPathError( void ) throw() {
+				return ;
+			}
+			virtual const char * what() const throw() {
+				return ("Error: Can't read this directory full path.");
+			}
+		};
+	};
+}
+
 #endif
